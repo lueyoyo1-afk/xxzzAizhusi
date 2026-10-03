@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="stylesheet" href="style.css?v=81">
+<script src="lib/marked.min.js?v=42"></script>
+<script src="lib/supabase.js?v=1"></script>
+</head>
+<body>
+
+  <!-- ══════ 启动遮罩：挡住首帧（initAuth 判定完成前，防止主界面漏出一帧） ══════ -->
+  <div id="bootMask" style="position:fixed;inset:0;z-index:9998;background:#f6f4f8;transition:opacity .18s ease;"></div>
+  <!-- ══════ 登录/注册页（未登录时全屏覆盖） ══════ -->
+  <div class="auth-wrap hide" id="authWrap">
+    <div class="auth-bg"></div>
+    <div class="auth-card">
+      <div class="auth-logo">🕸</div>
+      <div class="auth-title" id="authTitle">登录蛛丝</div>
+      <div class="auth-sub" id="authSub">聊天记录与人设卡，跨设备同步</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" type="button">登录</button>
+        <button class="auth-tab" id="tabReg" type="button">注册</button>
+      </div>
+
+      <div class="auth-field auth-field-rel">
+        <input class="auth-input" id="authEmail" type="email" placeholder="邮箱" autocomplete="off" spellcheck="false" inputmode="email">
+        <div class="auth-email-drop" id="authEmailDrop"></div>
+      </div>
+      <div class="auth-field auth-field-rel">
+        <input class="auth-input auth-input-eye" id="authPwd" type="password" placeholder="密码（6-15 位）" autocomplete="off" spellcheck="false" maxlength="15">
+        <button type="button" class="pwd-eye" id="authPwdEye" aria-label="显示密码"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3.5 12.5c2.4 2.6 5.3 3.9 8.5 3.9s6.1-1.3 8.5-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 5.4l14.8 13.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="auth-field auth-field-rel" id="authPwd2Field" style="display:none;">
+        <input class="auth-input auth-input-eye" id="authPwd2" type="password" placeholder="再输一次密码" autocomplete="off" spellcheck="false" maxlength="15">
+        <button type="button" class="pwd-eye" id="authPwd2Eye" aria-label="显示密码"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3.5 12.5c2.4 2.6 5.3 3.9 8.5 3.9s6.1-1.3 8.5-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 5.4l14.8 13.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+
+      <div class="auth-msg" id="authMsg"></div>
+
+      <button class="auth-submit" id="authSubmit" type="button">登录</button>
+
+      <div class="auth-foot">
+        <span id="authFootText">还没有账号？</span>
+        <a class="auth-link" id="authSwitch" href="javascript:void(0)">去注册</a>
+      </div>
+
+      <div class="auth-row">
+        <label class="auth-check"><input type="checkbox" id="authRemember"><span>记住密码</span></label>
+        <a class="auth-link" id="authForgot" href="javascript:void(0)">忘记密码？</a>
+      </div>
+
+      <div class="auth-skip">
+        <a class="auth-link dim" id="authSkip" href="javascript:void(0)">先不登录，本地试用</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 修改密码页（覆盖层） ══════ -->
+  <div class="auth-wrap hide" id="pwdWrap">
+    <div class="auth-bg"></div>
+    <div class="auth-card">
+      <div class="auth-logo">🔑</div>
+      <div class="auth-title">修改密码</div>
+      <div class="auth-sub" id="pwdSub">输入旧密码，设置新密码</div>
+      <div class="auth-field" id="pwdEmailField" style="display:none;">
+        <input class="auth-input" id="pwdEmail" type="email" placeholder="要修改密码的邮箱" autocomplete="off" spellcheck="false" inputmode="email">
+      </div>
+      <div class="auth-field auth-field-rel">
+        <input class="auth-input auth-input-eye" id="pwdOld" type="password" placeholder="旧密码" autocomplete="off" spellcheck="false" maxlength="15">
+        <button type="button" class="pwd-eye" id="pwdOldEye" aria-label="显示密码"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3.5 12.5c2.4 2.6 5.3 3.9 8.5 3.9s6.1-1.3 8.5-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 5.4l14.8 13.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="auth-field auth-field-rel">
+        <input class="auth-input auth-input-eye" id="pwdNew" type="password" placeholder="新密码（6-15 位）" autocomplete="off" spellcheck="false" maxlength="15">
+        <button type="button" class="pwd-eye" id="pwdNewEye" aria-label="显示密码"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3.5 12.5c2.4 2.6 5.3 3.9 8.5 3.9s6.1-1.3 8.5-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 5.4l14.8 13.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="auth-field auth-field-rel">
+        <input class="auth-input auth-input-eye" id="pwdNew2" type="password" placeholder="再输一次新密码" autocomplete="off" spellcheck="false" maxlength="15">
+        <button type="button" class="pwd-eye" id="pwdNew2Eye" aria-label="显示密码"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3.5 12.5c2.4 2.6 5.3 3.9 8.5 3.9s6.1-1.3 8.5-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 5.4l14.8 13.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="auth-msg" id="pwdMsg"></div>
+      <button class="auth-submit" id="pwdSubmit" type="button">确认修改</button>
+      <div class="auth-foot">
+        <a class="auth-link" id="pwdBack" href="javascript:void(0)">返回</a>
+      </div>
+    </div>
+  </div>
+  <!-- 开屏动画已移除（曾因页面重载导致反复闪屏，2026-10-03） -->
+
+  <!-- 顶部栏（消息 tab：列表态显示标题，聊天态显示返回键） -->
+  <div class="header" id="chatHeader">
+    <button class="menu-btn small back" id="chatBack" title="返回">‹</button>
+    <!-- 对话姿态切换（默认「认真」，点开浮层切换） -->
+    <button class="stance-btn" id="stanceBtn" title="对话姿态" aria-label="对话姿态">认</button>
+    <div class="name-col">
+      <div class="name" id="chatName" contenteditable="false" spellcheck="false"></div>
+      <!-- 正在输入提示（名字下方，顶栏内部） -->
+      <div class="typing-bar" id="typingBar">
+        <span class="typing-dots"><i></i><i></i><i></i></span>
+        <span class="typing-text" id="typingText" data-i18n="正在输入…">正在输入…</span>
+      </div>
+    </div>
+    <button class="menu-btn small chat-info" id="chatInfo" title="详细资料" aria-label="详细资料">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8.4" r="3.7"></circle>
+        <path d="M5.6 19.2c.7-3.2 3.2-5 6.4-5s5.7 1.8 6.4 5"></path>
+      </svg>
+    </button>
+    <button class="menu-btn small chat-more" id="chatMore" title="更多" aria-label="更多">⋯</button>
+  </div>
+
+  <!-- 聊天页右上角「⋯」菜单 -->
+  <div class="chat-menu" id="chatMenu">
+    <button data-cact="rename" data-i18n="重命名会话">重命名会话</button>
+    <button data-cact="regen" data-i18n="重新生成回复">重新生成回复</button>
+    <button data-cact="copy" data-i18n="复制最后回复">复制最后回复</button>
+    <button data-cact="find" data-i18n="搜索本会话">搜索本会话</button>
+    <button data-cact="bg" data-i18n="聊天背景">聊天背景</button>
+    <button data-cact="export" data-i18n="导出此会话">导出此会话</button>
+    <button data-cact="clear" data-i18n="清空此会话">清空此会话</button>
+    <button data-cact="del" data-i18n="删除此会话">删除此会话</button>
+  </div>
+
+  <!-- 对话姿态浮层（点顶栏姿态按钮弹出） -->
+  <div class="stance-pop" id="stancePop">
+    <div class="stance-pop-title" data-i18n="对话姿态">对话姿态</div>
+    <div class="stance-opts" id="stanceOpts"></div>
+  </div>
+
+  <!-- 会话内搜索条（聊天页顶部，默认隐藏） -->
+  <div class="chat-find" id="chatFind">
+    <svg class="cf-ico" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="M20 20l-3.5-3.5"></path>
+    </svg>
+    <input type="text" id="chatFindInput" placeholder="在本会话中搜索" data-i18n-ph="在本会话中搜索" autocomplete="off">
+    <span class="cf-count" id="chatFindCount"></span>
+    <button class="cf-nav" id="chatFindPrev" title="上一个" aria-label="上一个">‹</button>
+    <button class="cf-nav" id="chatFindNext" title="下一个" aria-label="下一个">›</button>
+    <button class="cf-close" id="chatFindClose" title="关闭" aria-label="关闭">×</button>
+  </div>
+
+  <!-- 存储容量预警条（默认隐藏，占用过高时出现） -->
+  <div class="store-warn" id="storeWarn">
+    <span class="sw-text" id="storeWarnText"></span>
+    <button class="sw-go" id="storeWarnGo" data-i18n="去清理">去清理</button>
+    <button class="sw-close" id="storeWarnClose" title="关闭" aria-label="关闭">×</button>
+  </div>
+
+  <!-- ===== 消息 tab ===== -->
+  <div class="tab-page active" id="pageMsg">
+    <div class="page-bg-layer" data-pbg="msg"></div>
+    <!-- 会话列表（微信/QQ 风格，默认显示） -->
+    <div class="msg-list-page" id="msgListPage">
+      <!-- 聊天记录搜索 -->
+      <div class="search-box" id="searchBox">
+        <div class="search-input-wrap">
+          <svg class="search-ico" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+          <input type="text" id="searchInput" placeholder="搜索聊天记录" data-i18n-ph="搜索聊天记录" autocomplete="off">
+          <button class="search-clear" id="searchClear" title="清空" aria-label="清空">×</button>
+          <div class="search-modes" role="group" aria-label="搜索方式">
+            <button class="search-mode active" id="modeFuzzy" data-mode="fuzzy" data-i18n="模糊">模糊</button>
+            <button class="search-mode" id="modeExact" data-mode="exact" data-i18n="精确">精确</button>
+          </div>
+        </div>
+      </div>
+      <div class="session-list" id="msgSessionList"></div>
+    </div>
+
+    <!-- 聊天页（点会话后进入） -->
+    <div class="chat-page" id="chatPage">
+    <div class="chat" id="chat"></div>
+
+    <!-- 回到底部 -->
+    <button class="back-top" id="backTop" title="回到底部" aria-label="回到底部">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 5v13"></path>
+        <path d="M6 12l6 6 6-6"></path>
+      </svg>
+    </button>
+
+    <!-- 底部输入栏 -->
+    <div class="input-bar">
+      <button class="attach-btn" id="imgBtn" title="传图" aria-label="传图">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+          <circle cx="8.5" cy="9.5" r="1.6"></circle>
+          <path d="M4 17l4.5-4.5 3.5 3.5 3-3L20 17"></path>
+        </svg>
+      </button>
+      <div class="input-wrap">
+        <textarea id="input" rows="1" placeholder="说点什么..." data-i18n-ph="说点什么..." autocomplete="off"></textarea>
+      </div>
+      <button id="send" data-i18n="发送">发送</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    </div><!-- /chatPage -->
+  </div>
+
+  <!-- ===== 联系人 tab（会话列表） ===== -->
+  <div class="tab-page" id="pageContacts">
+    <div class="page-bg-layer" data-pbg="contacts"></div>
+    <div class="tab-head">
+      <span class="tab-head-title" data-i18n="联系人">联系人</span>
+    </div>
+    <div class="tab-body">
+      <div class="session-list" id="sessionList"></div>
+    </div>
+    <div class="idx-bar" id="idxBar"></div>
+  </div>
+  <div class="tab-page" id="pageMoments">
+    <div class="page-bg-layer" data-pbg="moments"></div>
+    <div class="tab-head">
+      <span class="tab-head-title" data-i18n="动态">动态</span>
+    </div>
+    <div class="tab-body">
+      <!-- 发布框 -->
+      <div class="moment-compose">
+        <textarea id="momText" rows="2" placeholder="这一刻的想法..." data-i18n-ph="这一刻的想法..."></textarea>
+        <div class="moment-compose-bar">
+          <button class="attach-btn small" id="momImgBtn" title="加图">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+              <circle cx="8.5" cy="9.5" r="1.6"></circle>
+              <path d="M4 17l4.5-4.5 3.5 3.5 3-3L20 17"></path>
+            </svg>
+          </button>
+          <span class="moment-img-hint" id="momImgHint"></span>
+          <button class="moment-img-thumb" id="momImgThumb" type="button" title="已选图片">
+            <img id="momImgThumbPic" alt="">
+          </button>
+          <button class="moment-img-del" id="momImgDel" type="button" data-i18n="删除图片">删除</button>
+          <button class="mini-btn" id="momPost" data-i18n="发布">发布</button>
+        </div>
+        <input type="file" id="momFile" accept="image/*" hidden>
+      </div>
+      <!-- 动态列表 -->
+      <div class="moment-list" id="momentList"></div>
+    </div>
+  </div>
+
+  <!-- ===== 我 tab ===== -->
+  <div class="tab-page" id="pageMe">
+    <div class="page-bg-layer" data-pbg="me"></div>
+    <div class="tab-head">
+      <span class="tab-head-title" data-i18n="我">我</span>
+    </div>
+    <div class="tab-body me-body">
+      <!-- 个人资料入口（放大版） -->
+      <div class="drawer-nav me-profile-nav" id="openProfile">
+        <span class="nav-ico">👤</span>
+        <span class="nav-main">
+          <span class="nav-title" data-i18n="个人资料">个人资料</span>
+        </span>
+        <span class="nav-arrow">›</span>
+      </div>
+
+      <!-- 人设卡（抽屉式，支持多张卡） -->
+      <div class="drawer-block" data-key="persona">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="人设卡">人设卡</span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <!-- 卡列表：固定高度，超出内部滚动；每行右侧 ⋯ 弹出气泡菜单 -->
+          <div class="persona-list-wrap">
+            <div class="persona-list" id="personaList"></div>
+            <!-- 自定义滚动指示条：滚动时出现，静止后淡出（Android WebView 默认滚动条不可见） -->
+            <div class="persona-sb" id="personaScrollbar" aria-hidden="true"></div>
+          </div>
+          <!-- 隐藏入口：供 JS 打开「编辑人设内容」页（UI 上已改为卡片行右侧 ⋯ 菜单） -->
+          <div class="nav-row" id="personaEditRow" style="display:none;"></div>
+          <!-- 新建按钮：吸底，不随列表滚动 -->
+          <div class="persona-add-row">
+            <button class="mini-btn wide" id="personaAdd" data-i18n="＋ 新建人设卡">＋ 新建人设卡</button>
+          </div>
+          <!-- 隐藏中转：拼装后的文本，供 getCurPrompt / 导出读取 -->
+          <textarea id="systemPrompt" style="display:none;"></textarea>
+        </div>
+      </div>
+
+      <!-- 云端同步（账号登录后可用） -->
+      <div class="drawer-block" data-key="cloud">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="云端同步">云端同步</span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <div class="cloud-acct" id="cloudAcct">
+            <span class="cloud-acct-dot" id="cloudAcctDot"></span>
+            <span class="cloud-acct-text" id="cloudAcctText">未登录</span>
+            <span class="cloud-acct-actions">
+              <button type="button" class="mini-btn" id="cloudPwdBtn" style="display:none;">修改密码</button>
+              <button type="button" class="mini-btn" id="cloudSignBtn">登录</button>
+            </span>
+          </div>
+          <div class="cloud-row">
+            <span class="cloud-row-label" data-i18n="聊天记录">聊天记录</span>
+            <button type="button" class="cloud-toggle" id="cloudToggleChats" data-on="0">仅本地</button>
+          </div>
+          <div class="cloud-row">
+            <span class="cloud-row-label" data-i18n="人设卡">人设卡</span>
+            <button type="button" class="cloud-toggle" id="cloudTogglePersonas" data-on="0">仅本地</button>
+          </div>
+          <div class="cloud-row">
+            <span class="cloud-row-label" data-i18n="个人资料">个人资料</span>
+            <button type="button" class="cloud-toggle" id="cloudToggleProfile" data-on="0">仅本地</button>
+          </div>
+          <div class="cloud-actions">
+            <button type="button" class="mini-btn" id="cloudPushNow">立即上传</button>
+            <button type="button" class="mini-btn" id="cloudPullNow">立即下载</button>
+          </div>
+          <div class="drawer-hint" id="cloudHint" data-i18n="API Key 只存在本机，永远不会上传。">API Key 只存在本机，永远不会上传。</div>
+        </div>
+      </div>
+
+      <!-- API Key -->
+      <div class="drawer-block" data-key="apikey">
+        <div class="drawer-head">
+          <span class="drawer-label">API Key</span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <div class="key-input-wrap">
+            <input id="apiKeyInput" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            <button type="button" class="key-eye" id="keyEye" aria-label="显示/隐藏">
+              <svg class="key-eye-svg" id="keyEyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+              <svg class="key-eye-svg hidden" id="keyEyeOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/><line x1="4" y1="20" x2="20" y2="4"/></svg>
+            </button>
+          </div>
+          <div class="drawer-hint" id="keyState" data-i18n="未设置">未设置</div>
+          <div class="drawer-row">
+            <button class="mini-btn" id="saveKey" data-i18n="保存">保存</button>
+            <button class="mini-btn ghost" id="clearKey" data-i18n="清除">清除</button>
+          </div>
+          <button class="mini-btn key-add-btn" id="addKey" data-i18n="＋ 新增 API Key">＋ 新增 API Key</button>
+          <div class="key-list" id="keyList"></div>
+        </div>
+      </div>
+
+      <!-- 模型 -->
+      <div class="drawer-block" data-key="model">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="AI 模型">AI 模型</span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <div class="mprov-list" id="modelList"></div>
+          <div class="drawer-hint" data-i18n="支持 DeepSeek / 智谱 / Gemini / Claude / GPT，Key 与所选厂商不匹配会报错">支持 DeepSeek / 智谱 / Gemini / Claude / GPT，Key 与所选厂商不匹配会报错</div>
+        </div>
+      </div>
+      <!-- 上下文长度 -->
+      <div class="drawer-block" data-key="ctx">
+        <div class="drawer-head">
+          <span class="drawer-label"><span data-i18n="上下文条数">上下文条数</span>：<span id="ctxVal">20</span> <span data-i18n="条">条</span></span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <input type="range" id="ctxRange" min="0" max="50" step="2" value="20">
+          <div class="drawer-hint" data-i18n="每次只带最近 N 条消息给 AI，0 = 不带历史。越小越省钱。">每次只带最近 N 条消息给 AI，0 = 不带历史。越小越省钱。</div>
+        </div>
+      </div>
+
+      <!-- 生成参数 -->
+      <div class="drawer-block" data-key="gen">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="生成参数">生成参数</span>
+          <span class="drawer-arrow">▾</span>
+        </div>
+        <div class="drawer-body">
+          <div class="drawer-label2">温度（越高越随机）：<span id="tempVal">1.0</span></div>
+          <input type="range" id="tempRange" min="0" max="2" step="0.1" value="1">
+          <div class="drawer-label2" style="margin-top:12px">最大回复长度：<span id="maxTokVal">不限</span></div>
+          <input type="range" id="maxTokRange" min="0" max="8192" step="256" value="0">
+          <div class="drawer-hint" data-i18n="温度 0.3 更严谨、1.5 更发散；最大长度 0 = 交给模型默认。改完下次发送生效。">温度 0.3 更严谨、1.5 更发散；最大长度 0 = 交给模型默认。改完下次发送生效。</div>
+        </div>
+      </div>
+
+      <!-- 个性装扮（跟着上方卡片顺势排列，不吸底） -->
+      <div class="drawer-block about-nav inline-nav" id="openSkin">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="个性装扮">个性装扮</span>
+          <span class="nav-arrow">›</span>
+        </div>
+      </div>
+
+      <!-- 使用说明（整页滑入，形式同「关于」） -->
+      <div class="drawer-block about-nav" id="openHelp">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="使用说明">使用说明</span>
+          <span class="nav-arrow">›</span>
+        </div>
+      </div>
+      <!-- 关于（放最底下，不显示缩略信息，样式同上方卡片） -->
+      <div class="drawer-block about-nav" id="openAbout">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="关于">关于</span>
+          <span class="nav-arrow">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 聊天背景页（独立，仅作用于聊天详情页） ===== -->
+  <div class="settings-page" id="chatBgPage">
+    <div class="settings-head">
+      <button class="back-btn" id="chatBgBack">‹</button>
+      <span class="settings-title" data-i18n="聊天背景">聊天背景</span>
+    </div>
+    <div class="settings-body">
+      <div class="drawer-block">
+        <div class="drawer-body">
+          <div class="cbg-row">
+            <span class="cbg-row-label" data-i18n="背景图片">背景图片</span>
+            <div class="cbg-pic">
+              <button class="mini-btn ghost" id="cbgPickPic" data-i18n="选择并裁剪">选择并裁剪</button>
+              <button class="mini-btn ghost" id="cbgClearPic" data-i18n="移除图片">移除图片</button>
+            </div>
+          </div>
+          <input type="file" id="cbgFile" accept="image/*" style="display:none">
+          <div class="cbg-alpha-row" id="cbgAlphaRow">
+            <div class="cbg-alpha-head">
+              <span class="cbg-row-label" data-i18n="图片透明度">图片透明度</span>
+              <span class="cbg-alpha-val" id="cbgAlphaVal">0%</span>
+            </div>
+            <input type="range" class="cbg-alpha" id="cbgAlpha" min="0" max="100" value="0">
+            <div class="cbg-alpha-scale"><span data-i18n="清晰">清晰</span><span data-i18n="淡化">淡化</span></div>
+          </div>
+          <div class="cbg-alpha-row" id="cbgBlurRow">
+            <div class="cbg-alpha-head">
+              <span class="cbg-row-label" data-i18n="图片模糊">图片模糊</span>
+              <span class="cbg-alpha-val" id="cbgBlurVal">0px</span>
+            </div>
+            <input type="range" class="cbg-alpha" id="cbgBlur" min="0" max="20" step="1" value="0">
+            <div class="cbg-alpha-scale"><span data-i18n="清晰">清晰</span><span data-i18n="模糊">模糊</span></div>
+          </div>
+          <div class="cbg-hint" data-i18n="背景图片会以本机压缩后的形式保存，仅作用于聊天页。透明度越高，图片越淡、越像纯色底。">背景图片会以本机压缩后的形式保存，仅作用于聊天页。透明度越高，图片越淡、越像纯色底。</div>
+        </div>
+      </div>
+      <div class="drawer-block">
+        <div class="drawer-body">
+          <div class="drawer-hint" data-i18n="当前设置">当前设置</div>
+          <div class="cbg-preview" id="cbgPreview"></div>
+          <button class="mini-btn ghost cbg-reset" id="cbgReset" data-i18n="恢复默认（跟随皮肤）">恢复默认（跟随皮肤）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== 页面背景页（第 28 轮，默认 · 通透磨砂专用，四页各自独立） ===== -->
+  <div class="settings-page" id="pageBgPage">
+    <div class="settings-head">
+      <button class="back-btn" id="pageBgBack">‹</button>
+      <span class="settings-title" data-i18n="页面背景">页面背景</span>
+    </div>
+    <div class="settings-body">
+      <div class="drawer-block">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="选择页面">选择页面</span>
+        </div>
+        <div class="drawer-body">
+          <div class="pbg-list" id="pbgList">
+            <div class="pbg-item on" data-pbg-page="msg">
+              <span class="pbg-name" data-i18n="消息">消息</span>
+              <span class="pbg-state" data-i18n="缺省">缺省</span>
+            </div>
+            <div class="pbg-item" data-pbg-page="contacts">
+              <span class="pbg-name" data-i18n="联系人">联系人</span>
+              <span class="pbg-state" data-i18n="缺省">缺省</span>
+            </div>
+            <div class="pbg-item" data-pbg-page="moments">
+              <span class="pbg-name" data-i18n="动态">动态</span>
+              <span class="pbg-state" data-i18n="缺省">缺省</span>
+            </div>
+            <div class="pbg-item" data-pbg-page="me">
+              <span class="pbg-name" data-i18n="我">我</span>
+              <span class="pbg-state" data-i18n="缺省">缺省</span>
+            </div>
+          </div>
+          <div class="cbg-hint" data-i18n="hint">点选左侧页面，下方设置仅对该页生效。背景仅在「默认 · 通透磨砂」主题下生效。</div>
+        </div>
+      </div>
+      <div class="drawer-block">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="背景设置">背景设置</span>
+        </div>
+        <div class="drawer-body" id="pbgBody">
+          <div class="cbg-row">
+            <span class="cbg-row-label" data-i18n="背景图片">背景图片</span>
+            <div class="cbg-pic">
+              <button class="mini-btn ghost" id="pbgPickPic" data-i18n="选择并裁剪">选择并裁剪</button>
+              <button class="mini-btn ghost" id="pbgClearPic" data-i18n="移除图片">移除图片</button>
+            </div>
+          </div>
+          <input type="file" id="pbgFile" accept="image/*" style="display:none">
+          <div class="cbg-alpha-row" id="pbgAlphaRow">
+            <div class="cbg-alpha-head">
+              <span class="cbg-row-label" data-i18n="图片透明度">图片透明度</span>
+              <span class="cbg-alpha-val" id="pbgAlphaVal">100%</span>
+            </div>
+            <input type="range" class="cbg-alpha" id="pbgAlpha" min="0" max="100" value="100">
+            <div class="cbg-alpha-scale"><span data-i18n="清晰">清晰</span><span data-i18n="淡化">淡化</span></div>
+          </div>
+          <div class="cbg-alpha-row" id="pbgBlurRow">
+            <div class="cbg-alpha-head">
+              <span class="cbg-row-label" data-i18n="清晰/模糊度">清晰/模糊度</span>
+              <span class="cbg-alpha-val" id="pbgBlurVal">0px</span>
+            </div>
+            <input type="range" class="cbg-alpha" id="pbgBlur" min="0" max="30" value="0">
+            <div class="cbg-alpha-scale"><span data-i18n="清晰">清晰</span><span data-i18n="模糊">模糊</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="drawer-block">
+        <div class="drawer-body">
+          <div class="drawer-hint" data-i18n="当前设置">当前设置</div>
+          <div class="cbg-preview" id="pbgPreview"></div>
+          <button class="mini-btn ghost cbg-reset" id="pbgReset" data-i18n="恢复默认">恢复默认（跟随主题）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== 个性装扮页（独立） ===== -->
+  <div class="settings-page" id="skinPage">
+    <div class="settings-head">
+      <button class="back-btn" id="skinBack">‹</button>
+      <span class="settings-title" data-i18n="个性装扮">个性装扮</span>
+    </div>
+    <div class="settings-body">
+
+      <div class="skin-card" data-skin-id="b">
+        <div class="skin-preview skin-pb">
+          <div class="sp-bar">
+            <span class="sp-dot"></span>
+            <span class="sp-ttl"></span>
+          </div>
+          <div class="sp-row sp-row-a">
+            <div class="sp-bubble sp-left">
+              <span class="sp-line"></span>
+              <span class="sp-line short"></span>
+            </div>
+          </div>
+          <div class="sp-row sp-row-b">
+            <div class="sp-bubble sp-right">
+              <span class="sp-line"></span>
+            </div>
+          </div>
+          <div class="sp-row sp-row-c">
+            <div class="sp-bubble sp-left sm">
+              <span class="sp-line"></span>
+            </div>
+          </div>
+          <div class="sp-input">
+            <span class="sp-ph"></span>
+            <span class="sp-send"></span>
+          </div>
+        </div>
+        <div class="skin-meta">
+          <div class="skin-name">默认 · 通透磨砂</div>
+          <div class="skin-desc">半透明玻璃 · iOS 质感</div>
+        </div>
+        <span class="skin-actions">
+          <button class="skin-edit" id="skinEditB" data-i18n="编辑">编辑</button>
+        </span>
+      </div>
+
+      <div class="skin-group-title" data-i18n="圆角风格">圆角风格</div>
+      <div class="skin-chip-row">
+        <span class="chip-label" data-i18n="整体圆角">整体圆角</span>
+        <span class="skinseg" id="radiusSeg">
+          <button data-radius="default">默认</button>
+          <button data-radius="round">圆润</button>
+          <button data-radius="square">方正</button>
+        </span>
+      </div>
+      <div class="skin-group-title" data-i18n="气泡形状">气泡形状</div>
+      <div class="skin-chip-row">
+        <span class="chip-label" data-i18n="聊天气泡">聊天气泡</span>
+        <span class="skinseg" id="bubbleSeg">
+          <button data-bubble="default">默认</button>
+          <button data-bubble="sym">对称</button>
+          <button data-bubble="soft">微圆</button>
+          <button data-bubble="tail">尾角</button>
+        </span>
+      </div>
+
+      <div class="skin-group-title" data-i18n="语言">语言</div>
+      <div class="skin-chip-row">
+        <span class="chip-label" data-i18n="界面语言">界面语言</span>
+        <span class="skinseg" id="langSeg">
+          <button data-lang="zh">简体中文</button>
+          <button data-lang="zhHant">繁體中文</button>
+          <button data-lang="en">English</button>
+        </span>
+      </div>
+
+      <!-- 字体（可收纳：收起只显示当前字体，展开选别的） -->
+      <div class="font-fold" id="fontFold">
+        <div class="skin-chip-row font-fold-head" id="fontFoldHead">
+          <span class="chip-label chip-label-sm" data-i18n="字体样式">字体样式</span>
+          <span class="font-fold-cur" id="fontCurName">系统字体</span>
+          <span class="font-fold-arrow" id="fontFoldArrow">▾</span>
+        </div>
+
+        <div class="font-fold-body" id="fontFoldBody">
+          <div class="skin-chip-row font-row-in">
+            <span class="chip-label chip-label-sm" data-i18n="系统字体">系统字体</span>
+            <span class="skinseg skinseg-sm" id="typeSeg">
+              <button data-type="system">系统字体</button>
+              <button data-type="hei">黑体</button>
+              <button data-type="song">宋体</button>
+            </span>
+            <span class="fmt-group" id="boldSeg">
+              <button class="fmt-btn" data-bold="off" title="字体加粗"><b>B</b></button>
+            </span>
+            <span class="fmt-group" id="italSeg">
+              <button class="fmt-btn" data-ital="off" title="斜体"><i>I</i></button>
+            </span>
+          </div>
+
+          <div class="skin-chip-row font-row-in">
+            <span class="chip-label chip-label-sm" data-i18n="字体大小">字体大小</span>
+            <span class="fontseg fontseg5" id="fontSizeSeg">
+              <button data-fs="xs">特小</button>
+              <button data-fs="small">小</button>
+              <button data-fs="normal">中</button>
+              <button data-fs="large">大</button>
+              <button data-fs="xl">特大</button>
+            </span>
+          </div>
+
+          <div class="font-sub" data-i18n="本地字体">本地字体</div>
+          <div class="font-list" id="fontLocalList"></div>
+          <button class="font-import-btn" id="fontImportBtn" data-i18n="＋ 从手机导入字体文件">＋ 从手机导入字体文件</button>
+          <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+        </div>
+      </div>
+      <div class="drawer-hint" style="margin:4px 2px 0">皮肤只改变颜色与动画，不影响消息、人设、动态等任何数据。字体设置立即生效，退出重进仍保留。</div>
+    </div>
+  </div>
+
+  <!-- ===== 关于页（独立） ===== -->
+  <div class="settings-page" id="aboutPage">
+    <div class="settings-head">
+      <button class="back-btn" id="aboutBack">‹</button>
+      <span class="settings-title">关于</span>
+    </div>
+    <div class="settings-body">
+      <div class="about-hero">
+        <div class="about-logo">🕸</div>
+        <div class="about-name">蛛丝</div>
+        <div class="about-slogan">仅个人学习使用</div>
+      </div>
+      <p class="about-desc">一个自用的 AI 聊天工具。数据默认只存在这台手机里；开启云端同步后，会话与人设卡会上传到你的私有云端账号，API 密钥始终只存本机、永不上传。</p>
+      <div class="drawer-block">
+        <div class="drawer-body">
+          <div class="about-row"><span class="about-k" data-i18n="作者">作者</span><span class="about-v">万千</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="版本号">版本号</span><span class="about-v" id="aboutVersion">-</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="接口地址">接口地址</span><span class="about-v" id="aboutApi">api.deepseek.com</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="当前模型">当前模型</span><span class="about-v" id="aboutModel">-</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="本地存储">本地存储</span><span class="about-v" id="aboutStorage">-</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="累计消息">累计消息</span><span class="about-v" id="aboutMsgs">-</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="累计字数">累计字数</span><span class="about-v" id="aboutChars">-</span></div>
+          <div class="about-row"><span class="about-k" data-i18n="邮箱">邮箱</span><span class="about-v" id="aboutMail">wew1sh@126.com</span></div>
+        </div>
+      </div>
+      <div class="drawer-block">
+        <div class="drawer-body">
+          <div class="about-row about-tip-row">
+            <span class="about-k" data-i18n="计费提示">计费提示</span>
+            <span class="about-v about-tip">高峰时段（周一至周五 9:00-12:00、14:00-18:00）单价较高，其余时段更便宜。多轮对话尽量别清空历史，缓存命中能省很多。</span>
+          </div>
+          <div class="about-row"><span class="about-k" data-i18n="检查更新">检查更新</span><span class="about-v about-link" id="aboutCheck">当前已是最新版本</span></div>
+          <div class="about-row about-danger-row" id="aboutClear">
+            <span class="about-k about-danger-k" data-i18n="清空全部数据">清空全部数据</span>
+            <span class="about-v about-danger-v">删除 ›</span>
+          </div>
+          <div class="about-row about-danger-row" id="aboutFactory">
+            <span class="about-k about-danger-k" data-i18n="恢复出厂设置">恢复出厂设置</span>
+            <span class="about-v about-danger-v">重置 ›</span>
+          </div>
+        </div>
+      </div>
+      <div class="drawer-block">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="数据备份">数据备份</span>
+        </div>
+        <div class="drawer-body">
+          <div class="bak-actions">
+            <button class="bak-btn" id="exportBtn">
+              <span class="bak-ico bak-ico-exp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              </span>
+              <span class="bak-txt">
+                <span class="bak-t" data-i18n="导出备份">导出备份</span>
+                <span class="bak-s" data-i18n="存为 JSON 文件">存为 JSON 文件</span>
+              </span>
+            </button>
+            <button class="bak-btn" id="importBtn">
+              <span class="bak-ico bak-ico-imp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V6"/><path d="m7 11 5-5 5 5"/><path d="M5 21h14"/></svg>
+              </span>
+              <span class="bak-txt">
+                <span class="bak-t" data-i18n="导入备份">导入备份</span>
+                <span class="bak-s" data-i18n="从文件恢复">从文件恢复</span>
+              </span>
+            </button>
+          </div>
+          <div class="drawer-hint">导出为 JSON 文件，含全部会话、动态、人设卡与偏好设置；换机或清数据前先导一份。</div>
+        </div>
+      </div>
+      <!-- ===== 免责声明 ===== -->
+      <div class="about-disclaimer">
+        <div class="about-disc-title">免责声明</div>
+        <div class="about-disc-body">
+          <p>「蛛丝」（以下简称“本应用”）为个人学习与技术研究用途的非商业项目，不提供任何形式的商业服务或担保。请在使用前完整阅读以下内容，使用本应用即视为您已理解并同意。</p>
+          <p><b>一、与第三方的关联</b><br>本应用仅为第三方大模型接口的客户端工具，与 DeepSeek、智谱、Google、Anthropic、OpenAI 等任何厂商均无关联、合作、赞助或授权关系。相关名称与商标归各自权利人所有。</p>
+          <p><b>二、API 密钥与费用</b><br>您需自行申请并填写第三方接口密钥，密钥由您自行保管。经由本应用发起的一切请求及其产生的费用、账号风险，均由您自行承担，本应用作者不承担任何责任。</p>
+          <p><b>三、内容免责</b><br>对话内容由第三方人工智能模型自动生成，可能存在错误、过时、偏见或不当信息，不构成任何专业（含法律、医疗、投资等）建议。您应自行核实并独立判断，因使用生成内容产生的任何后果由您自行承担。</p>
+          <p><b>四、数据与隐私</b><br>本应用默认不采集、不上传您的任何数据；若您主动开启「云端同步」，会话与人设卡将上传至您自己的云端账号（该账号由您自行注册并控制）。API 密钥始终仅保存在设备本地存储中且未加密。因设备丢失、系统清理、卸载、应用异常等导致的数据丢失或泄露，作者不承担责任，请自行做好备份。</p>
+          <p><b>五、可用性与变动</b><br>第三方接口及模型随时可能变更、限制、收费或停止服务，本应用不保证持续可用、准确或兼容。作者保留随时修改、暂停或终止功能的权利，且无义务提供维护或通知。</p>
+          <p><b>六、禁止用途</b><br>您不得利用本应用从事任何违反法律法规、侵害他人合法权益或违反第三方服务条款的行为。由此产生的一切责任由使用者承担。</p>
+          <p><b>七、责任限制</b><br>本应用按“现状”提供，不附带任何明示或默示担保。在适用法律允许的最大范围内，作者不对因使用或无法使用本应用而产生的任何直接或间接损失承担责任。</p>
+          <p class="about-disc-warn">如您不同意上述任何条款，请立即停止使用并卸载本应用。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== 使用说明页（独立，形式同关于） ===== -->
+  <div class="settings-page" id="helpPage">
+    <div class="settings-head">
+      <button class="back-btn" id="helpBack">‹</button>
+      <span class="settings-title" data-i18n="使用说明">使用说明</span>
+    </div>
+    <div class="settings-body">
+      <p class="about-desc" data-i18n="这是「蛛丝」的完整功能清单。带 ✅ 的可以直接用，带 ⚠️ 的有前提条件，带 ❌ 的当前版本用不了，别在那儿卡住。">这是「蛛丝」的完整功能清单。带 ✅ 的可以直接用，带 ⚠️ 的有前提条件，带 ❌ 的当前版本用不了，别在那儿卡住。</p>
+
+<!-- ===== 四方格导航 ===== -->
+      <div class="help-grid">
+        <button class="help-card" data-hg="ok" type="button">
+          <span class="hc-ico">✅</span>
+          <span class="hc-title" data-i18n="可以用的">可以用的</span>
+          <span class="hc-sub" data-i18n="13 项">13 项</span>
+        </button>
+        <button class="help-card" data-hg="warn" type="button">
+          <span class="hc-ico">⚠️</span>
+          <span class="hc-title" data-i18n="有前提的">有前提的</span>
+          <span class="hc-sub" data-i18n="4 项">4 项</span>
+        </button>
+        <button class="help-card" data-hg="no" type="button">
+          <span class="hc-ico">❌</span>
+          <span class="hc-title" data-i18n="用不了的">用不了的</span>
+          <span class="hc-sub" data-i18n="6 项">6 项</span>
+        </button>
+        <button class="help-card" data-hg="note" type="button">
+          <span class="hc-ico">📌</span>
+          <span class="hc-title" data-i18n="特殊情况">特殊情况</span>
+          <span class="hc-sub" data-i18n="5 项">5 项</span>
+        </button>
+      </div>
+
+      <div class="help-panel" id="helpPanel-ok">
+        <div class="hp-title" data-i18n="✅ 可以用的功能">✅ 可以用的功能</div>
+        <div class="hp-body">
+          <div class="help-item">
+            <div class="help-t" data-i18n="聊天">聊天</div>
+            <div class="help-d" data-i18n="和 AI 真对话，流式输出（一个字一个字蹦），支持 Markdown 渲染、代码块、表格，回复完自动滚到底。">和 AI 真对话，流式输出（一个字一个字蹦），支持 Markdown 渲染、代码块、表格，回复完自动滚到底。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="上下文记忆">上下文记忆</div>
+            <div class="help-d" data-i18n="AI 记得前面聊过什么。带多少条在「我 → 上下文条数」里调，0 = 不带历史。条数越多越贵，缓存命中能便宜很多。">AI 记得前面聊过什么。带多少条在「我 → 上下文条数」里调，0 = 不带历史。条数越多越贵，缓存命中能便宜很多。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="多个会话">多个会话</div>
+            <div class="help-d" data-i18n="「消息」页可以建多个对话，长按或左滑能删除。会话列表左滑删除时别滑太靠边，靠边是唤出侧边栏的手势。">「消息」页可以建多个对话，长按或左滑能删除。会话列表左滑删除时别滑太靠边，靠边是唤出侧边栏的手势。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="发图片（识图）">发图片（识图）</div>
+            <div class="help-d" data-i18n="点输入框左边的回形针选图，可以发给 AI 让它看图。一次只能发一张。图片只用于当次发送，不会长期存在手机里（关掉就没了）。">点输入框左边的回形针选图，可以发给 AI 让它看图。一次只能发一张。图片只用于当次发送，不会长期存在手机里（关掉就没了）。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="人设卡">人设卡</div>
+            <div class="help-d" data-i18n="在「我 → 人设卡」里建多张卡，每张一套性格设定，切换卡就等于换个人格聊天。内置的「像素蜘蛛」卡不可删。卡上右侧「⋯」可编辑、重命名、删除。">在「我 → 人设卡」里建多张卡，每张一套性格设定，切换卡就等于换个人格聊天。内置的「像素蜘蛛」卡不可删。卡上右侧「⋯」可编辑、重命名、删除。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="API Key 管理">API Key 管理</div>
+            <div class="help-d" data-i18n="支持存多个 Key，随时切换。Key 只存在这台手机里，不上传。点眼睛图标可以查看明文。">支持存多个 Key，随时切换。Key 只存在这台手机里，不上传。点眼睛图标可以查看明文。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="模型切换">模型切换</div>
+            <div class="help-d" data-i18n="「我 → AI 模型」里选。deepseek-flash 快而便宜，支持看图；deepseek-v4-pro 更强更贵，不支持看图。">「我 → AI 模型」里选。deepseek-flash 快而便宜，支持看图；deepseek-v4-pro 更强更贵，不支持看图。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="动态（朋友圈）">动态（朋友圈）</div>
+            <div class="help-d" data-i18n="「动态」页可以发图文动态，纯本地，只有你自己看得到。">「动态」页可以发图文动态，纯本地，只有你自己看得到。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="个性装扮">个性装扮</div>
+            <div class="help-d" data-i18n="「我 → 个性装扮」里换主题配色、圆角、聊天背景（纯色或自己的图，可裁剪）、字体。改了立刻生效。">「我 → 个性装扮」里换主题配色、圆角、聊天背景（纯色或自己的图，可裁剪）、字体。改了立刻生效。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="会话「⋯」菜单">会话「⋯」菜单</div>
+            <div class="help-d" data-i18n="聊天页右上角「⋯」里藏着一堆操作：重命名会话、重新生成回复、复制最后回复、搜索本会话、聊天背景、导出此会话、清空此会话、删除此会话。不知道命令在哪儿找的，先点这里。">聊天页右上角「⋯」里藏着一堆操作：重命名会话、重新生成回复、复制最后回复、搜索本会话、聊天背景、导出此会话、清空此会话、删除此会话。不知道命令在哪儿找的，先点这里。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="联系人「⋯」开关">联系人「⋯」开关</div>
+            <div class="help-d" data-i18n="点联系人详情右上角「⋯」可开关：让 TA 自己发朋友圈、主动评论互动、显示思考、显示推理过程。关掉后对应行为就不会发生。">点联系人详情右上角「⋯」可开关：让 TA 自己发朋友圈、主动评论互动、显示思考、显示推理过程。关掉后对应行为就不会发生。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="对话姿态">对话姿态</div>
+            <div class="help-d" data-i18n="聊天页右上角有个姿态按钮，点开可选四档：认真事务、情感剖白、角色扮演、抽离讨论。换档后在下一轮回复生效，档位会记住，下次打开还是那一档。">聊天页右上角有个姿态按钮，点开可选四档：认真事务、情感剖白、角色扮演、抽离讨论。换档后在下一轮回复生效，档位会记住，下次打开还是那一档。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="数据备份 / 恢复">数据备份 / 恢复</div>
+            <div class="help-d" data-i18n="在「关于」页最下面。导出会生成一个 JSON 文件，含全部会话、动态、人设卡和设置。换手机或者要清数据前，先导一份。">在「关于」页最下面。导出会生成一个 JSON 文件，含全部会话、动态、人设卡和设置。换手机或者要清数据前，先导一份。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-panel" id="helpPanel-warn">
+        <div class="hp-title" data-i18n="⚠️ 有前提条件的功能">⚠️ 有前提条件的功能</div>
+        <div class="hp-body">
+          <div class="help-item">
+            <div class="help-t" data-i18n="发图片需要选对模型">发图片需要选对模型</div>
+            <div class="help-d" data-i18n="deepseek-flash 能识图；deepseek-v4-pro 不支持图像理解。用 Pro 发图，AI 是「看不见」的，别以为它装傻。">deepseek-flash 能识图；deepseek-v4-pro 不支持图像理解。用 Pro 发图，AI 是「看不见」的，别以为它装傻。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="附件必须在系统文件里先存在">附件必须在系统文件里先存在</div>
+            <div class="help-d" data-i18n="选图走的是系统文件选择器。如果某个 App 保存的图选不到，先把它存到「下载」目录再选，基本都能解决。">选图走的是系统文件选择器。如果某个 App 保存的图选不到，先把它存到「下载」目录再选，基本都能解决。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="花钱的事">花钱的事</div>
+            <div class="help-d" data-i18n="用的是你自己的 DeepSeek Key，按量计费。高峰时段（周一至周五 9:00-12:00、14:00-18:00）单价贵一倍左右，其余时段便宜。多轮对话别老是清空历史，缓存命中的价格差几十倍。">用的是你自己的 DeepSeek Key，按量计费。高峰时段（周一至周五 9:00-12:00、14:00-18:00）单价贵一倍左右，其余时段便宜。多轮对话别老是清空历史，缓存命中的价格差几十倍。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="本地存储有上限">本地存储有上限</div>
+            <div class="help-d" data-i18n="所有数据存在浏览器本地存储里，长期不用又不清理，可能会满。「关于」页能看到当前占用。满了就导出备份后清一次。">所有数据存在浏览器本地存储里，长期不用又不清理，可能会满。「关于」页能看到当前占用。满了就导出备份后清一次。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-panel" id="helpPanel-no">
+        <div class="hp-title" data-i18n="❌ 当前版本没有 / 用不了">❌ 当前版本没有 / 用不了</div>
+        <div class="hp-body">
+          <div class="help-item">
+            <div class="help-t" data-i18n="联网搜索">联网搜索</div>
+            <div class="help-d" data-i18n="这个功能已经整个拆掉了。AI 只知道训练时的事，问它实时新闻、今天的天气、最新股价，它答不了，别指望。">这个功能已经整个拆掉了。AI 只知道训练时的事，问它实时新闻、今天的天气、最新股价，它答不了，别指望。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="一次发多张图">一次发多张图</div>
+            <div class="help-d" data-i18n="目前只支持单张。要发多张就一张张来。">目前只支持单张。要发多张就一张张来。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="语音输入 / 朗读">语音输入 / 朗读</div>
+            <div class="help-d" data-i18n="没有。所有输入都靠打字。">没有。所有输入都靠打字。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="云端同步 / 多设备">云端同步 / 多设备</div>
+            <div class="help-d" data-i18n="没有账号系统，数据只在这台手机上。换手机请用「导出备份 → 导入备份」。">没有账号系统，数据只在这台手机上。换手机请用「导出备份 → 导入备份」。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="重新生成 / 编辑已发出的消息">重新生成 / 编辑已发出的消息</div>
+            <div class="help-d" data-i18n="没有这两个按钮。想改就让 AI 重说一遍，或者删掉这个会话重开。">没有这两个按钮。想改就让 AI 重说一遍，或者删掉这个会话重开。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="AI 主动发消息 / 定时提醒">AI 主动发消息 / 定时提醒</div>
+            <div class="help-d" data-i18n="没有。App 关了就完全停了，不会有任何后台推送。">没有。App 关了就完全停了，不会有任何后台推送。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-panel" id="helpPanel-note">
+        <div class="hp-title" data-i18n="📌 一些特殊情况说明">📌 一些特殊情况说明</div>
+        <div class="hp-body">
+          <div class="help-item">
+            <div class="help-t" data-i18n="改了设置但没生效？">改了设置但没生效？</div>
+            <div class="help-d" data-i18n="Key、模型这类改完点「保存」才生效；温度和最大长度是「下次发送」生效，不会影响已经发出的消息。">Key、模型这类改完点「保存」才生效；温度和最大长度是「下次发送」生效，不会影响已经发出的消息。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="清空数据的后果">清空数据的后果</div>
+            <div class="help-d" data-i18n="「清空全部数据」会删掉会话、动态、人设卡，但会保留你的 API Key、模型选择和设置。清之前强烈建议先导备份。">「清空全部数据」会删掉会话、动态、人设卡，但会保留你的 API Key、模型选择和设置。清之前强烈建议先导备份。</div>
+          </div>
+          <div class="help-item">
+            <div class="help-t" data-i18n="AI 回复特别慢或报错">AI 回复特别慢或报错</div>
+            <div class="help-d" data-i18n="多半是 Key 没配额了、网络断了，或者服务商在高峰期排队。先在「关于」页确认接口地址和模型对不对，再检查 Key 余额。">多半是 Key 没配额了、网络断了，或者服务商在高峰期排队。先在「关于」页确认接口地址和模型对不对，再检查 Key 余额。</div>
+           <div class="help-item">
+             <div class="help-t" data-i18n="它是给自己用的">它是给自己用的</div>
+             <div class="help-d" data-i18n="不上架、不分享、不做技术支持。把它当个顺手的私人工具就行。">不上架、不分享、不做技术支持。把它当个顺手的私人工具就行。</div>
+           </div>
+         </div>
+       </div>
+      </div>
+
+      <div class="drawer-hint" style="margin: 4px 2px 12px;">说明可能随版本更新而略有出入，以实际界面为准。</div>
+
+      <!-- ===== AI 客服入口 ===== -->
+      <button class="help-cs-btn" id="openHelpChat" type="button">
+        <span class="hc-ico">🤖</span>
+        <span class="hcs-txt">
+          <span class="hcs-t1" data-i18n="问客服">问客服</span>
+          <span class="hcs-t2" data-i18n="只回答这个 App 的用法">只回答这个 App 的用法</span>
+        </span>
+        <span class="hcs-arrow">›</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== AI 客服聊天页 ===== -->
+  <div class="settings-page" id="helpChatPage">
+    <div class="settings-head">
+      <button class="back-btn" id="helpChatBack">‹</button>
+      <span class="settings-title" id="helpChatTitle">蛛丝客服</span>
+      <button class="hc-clear" id="helpChatClear" title="清空对话">清空</button>
+    </div>
+    <div class="hc-body" id="helpChatBody">
+      <div class="hc-msgs" id="helpChatMsgs"></div>
+      <div class="hc-hint" id="helpChatHint">只回答「蛛丝」App 的用法问题，其他话题会礼貌拒答。</div>
+      <div class="hc-bar">
+        <textarea class="hc-input" id="helpChatInput" rows="1" placeholder="问点 App 用法相关的…"></textarea>
+        <button class="hc-send" id="helpChatSend">发送</button>
+      </div>
+    </div>
+  </div>
+  <!-- ===== 底部 tab 栏（悬浮胶囊） ===== -->
+  <div class="tabbar" id="tabbar">
+    <button class="tab-item active" data-tab="msg">
+      <span class="tab-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 9 9 0 0 1-3.7-.8L4 20.5l1.6-4.3A8.2 8.2 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3.2 8.4 8.4 0 0 1 21 11.5z"/>
+        </svg>
+      </span>
+      <span class="tab-txt" data-i18n="消息">消息</span>
+    </button>
+    <button class="tab-item" data-tab="contacts">
+      <span class="tab-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3.2"/>
+          <path d="M2.8 19.5c0-3 2.8-5 6.2-5s6.2 2 6.2 5"/>
+          <path d="M16.2 5.4a3.2 3.2 0 0 1 0 6.2"/>
+          <path d="M17.6 14.9c2.2.5 3.6 1.9 3.6 4.6"/>
+        </svg>
+      </span>
+      <span class="tab-txt" data-i18n="联系人">联系人</span>
+    </button>
+    <button class="tab-item" data-tab="moments">
+      <span class="tab-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8.6"/>
+          <path d="M3.6 10.4h16.8M3.6 13.6h16.8"/>
+          <path d="M12 3.4c2.4 2.4 2.4 14.8 0 17.2"/>
+          <path d="M12 3.4c-2.4 2.4-2.4 14.8 0 17.2"/>
+        </svg>
+      </span>
+      <span class="tab-txt" data-i18n="动态">动态</span>
+    </button>
+    <button class="tab-item" data-tab="me">
+      <span class="tab-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8.4" r="3.6"/>
+          <path d="M4.8 20c0-3.5 3.2-5.8 7.2-5.8s7.2 2.3 7.2 5.8"/>
+        </svg>
+      </span>
+      <span class="tab-txt" data-i18n="我">我</span>
+    </button>
+  </div>
+
+
+  <!-- 侧边栏遮罩（保留给二级页用） -->
+  <div class="mask" id="mask"></div>
+  <!-- 个人资料页（从右侧滑入） -->
+  <div class="settings-page" id="profilePage">
+    <div class="settings-head">
+      <button class="back-btn" id="profileBack">‹</button>
+      <span class="settings-title" data-i18n="个人资料">个人资料</span>
+    </div>
+    <div class="settings-body">
+      <div class="drawer-hint" style="margin:0 4px 12px;" data-i18n="这些信息会自动附在每次对话的最前面，让 AI 更懂你。留空的项不会发送。">
+        这些信息会自动附在每次对话的最前面，让 AI 更懂你。留空的项不会发送。
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="头像">头像</span></div>
+        <div class="drawer-body">
+          <div class="avatar-row">
+            <div class="avatar-pick" id="pfAvatarPick">
+              <img id="pfAvatarImg" alt="" hidden>
+              <span id="pfAvatarPh">＋</span>
+            </div>
+            <div class="avatar-info">
+              <div class="avatar-info-t" data-i18n="我的头像">我的头像</div>
+              <div class="avatar-info-s" data-i18n="点左侧方框选择图片（自动裁剪为方形）">点左侧方框选择图片（自动裁剪为方形）</div>
+              <button class="mini-btn ghost" id="pfAvatarDel" type="button" data-i18n="删除头像">删除头像</button>
+            </div>
+            <input type="file" id="pfAvatarInput" accept="image/*" hidden>
+          </div>
+          <div class="switch-row">
+            <span class="switch-label" data-i18n="显示头像">显示头像</span>
+            <label class="switch">
+              <input type="checkbox" id="pfShowAvatar" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="drawer-hint" style="margin:2px 0 0;" data-i18n="关闭后聊天、动态里都不显示头像，回到纯文字版。">关闭后聊天、动态里都不显示头像，回到纯文字版。</div>
+        </div>
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="基础">基础</span></div>
+        <div class="drawer-body">
+          <div class="pf-grid">
+            <div class="pf-cell">
+              <label class="pf-label" data-i18n="称呼">称呼</label>
+              <input class="pf-input" id="pfNickname" type="text" placeholder="例如：老板 / 阿橙" data-i18n-ph="例如：老板 / 阿橙" autocomplete="off">
+            </div>
+            <div class="pf-cell">
+              <label class="pf-label" data-i18n="年龄">年龄</label>
+              <input class="pf-input" id="pfAge" type="text" placeholder="例如：20 岁" data-i18n-ph="例如：20 岁" autocomplete="off">
+            </div>
+            <div class="pf-cell">
+              <label class="pf-label" data-i18n="性别">性别</label>
+              <input class="pf-input" id="pfGender" type="text" placeholder="男 / 女" data-i18n-ph="男 / 女" autocomplete="off">
+            </div>
+            <div class="pf-cell">
+              <label class="pf-label" data-i18n="职业 / 身份">职业 / 身份</label>
+              <input class="pf-input" id="pfJob" type="text" placeholder="例如：学生 / 开发" data-i18n-ph="例如：学生 / 开发" autocomplete="off">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="性格与沟通">性格与沟通</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="性格">性格</label>
+          <textarea class="pf-area" id="pfCharacter" rows="3" placeholder="例如：急性子，怕麻烦，想清楚了就干" data-i18n-ph="例如：急性子，怕麻烦，想清楚了就干"></textarea>
+
+          <label class="pf-label" data-i18n="外貌">外貌</label>
+          <textarea class="pf-area" id="pfLook" rows="3" placeholder="例如：个子不高，及腰黑长直，圆框眼镜" data-i18n-ph="例如：个子不高，及腰黑长直，圆框眼镜"></textarea>
+
+          <label class="pf-label" data-i18n="衣着">衣着</label>
+          <textarea class="pf-area" id="pfCloth" rows="3" placeholder="例如：常穿宽松针织衫 + 帆布鞋，冬天围驼色围巾" data-i18n-ph="例如：常穿宽松针织衫 + 帆布鞋，冬天围驼色围巾"></textarea>
+
+          <label class="pf-label" data-i18n="说话 / 沟通偏好">说话 / 沟通偏好</label>
+          <textarea class="pf-area" id="pfStyle" rows="3" placeholder="例如：直接给结论，别客套；给完整可复制的代码；少用表情" data-i18n-ph="例如：直接给结论，别客套；给完整可复制的代码；少用表情"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="背景">背景</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="所在地">所在地</label>
+          <input class="pf-input" id="pfCity" type="text" placeholder="例如：杭州" data-i18n-ph="例如：杭州" autocomplete="off">
+
+          <label class="pf-label" data-i18n="当前状态">当前状态</label>
+          <textarea class="pf-area" id="pfStatus" rows="3" placeholder="例如：大三在读，业余在做一个自用的 AI 聊天 App" data-i18n-ph="例如：大三在读，业余在做一个自用的 AI 聊天 App"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="好恶与能力">好恶与能力</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="喜好">喜好</label>
+          <textarea class="pf-area" id="pfLike" rows="3" placeholder="例如：写代码、打游戏、听摇滚" data-i18n-ph="例如：写代码、打游戏、听摇滚"></textarea>
+
+          <label class="pf-label" data-i18n="厌恶">厌恶</label>
+          <textarea class="pf-area" id="pfHate" rows="3" placeholder="例如：香菜、迟到、被催" data-i18n-ph="例如：香菜、迟到、被催"></textarea>
+
+          <label class="pf-label" data-i18n="擅长">擅长</label>
+          <textarea class="pf-area" id="pfSkill" rows="3" placeholder="例如：拆需求、找 bug、做界面" data-i18n-ph="例如：拆需求、找 bug、做界面"></textarea>
+
+          <label class="pf-label" data-i18n="短板 / 弱点">短板 / 弱点</label>
+          <textarea class="pf-area" id="pfWeak" rows="3" placeholder="例如：数学一般、容易钻牛角尖、拖延" data-i18n-ph="例如：数学一般、容易钻牛角尖、拖延"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="边界与补充">边界与补充</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="禁忌底线">禁忌底线</label>
+          <textarea class="pf-area" id="pfTaboo" rows="3" placeholder="例如：最烦说&#39;作为一个AI&#39;；不要反复确认；别长篇大论" data-i18n-ph="例如：最烦说&#39;作为一个AI&#39;；不要反复确认；别长篇大论"></textarea>
+
+          <label class="pf-label" data-i18n="自由备注">自由备注</label>
+          <textarea class="pf-area" id="pfExtra" rows="4" placeholder="任何想让 AI 知道的事，例如当前在做的项目、目标、禁忌话题等" data-i18n-ph="任何想让 AI 知道的事，例如当前在做的项目、目标、禁忌话题等"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-hint" id="pfStat" style="margin:12px 4px 6px;" data-i18n="已填写 0 / 16 项">已填写 0 / 16 项</div>
+      <div class="drawer-row" style="margin:0 4px;">
+        <button class="mini-btn" id="profileSave" data-i18n="保存">保存</button>
+        <button class="mini-btn ghost" id="profileClear" data-i18n="清空全部">清空全部</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 人设卡详情页（从右侧滑入，参考微信「详细资料」） -->
+  <div class="settings-page" id="personaPage">
+    <div class="settings-head">
+      <button class="back-btn" id="personaBack">‹</button>
+      <span class="settings-title" data-i18n="详细资料">详细资料</span>
+      <button class="more-btn" id="pcMoreBtn" type="button" aria-label="更多">⋯</button>
+    </div>
+    <div class="settings-body">
+      <!-- 头像 + 名字 -->
+      <div class="pc-hero">
+        <div class="pc-hero-avatar" id="pcAvatar">人</div>
+        <div class="pc-hero-name" id="pcName">未命名</div>
+        <div class="pc-hero-sub" id="pcSub">人设卡联系人</div>
+        <div class="pc-hero-btns">
+          <button class="pc-avatar-btn" id="pcAliasRow" type="button" data-i18n="备注">备注</button>
+          <button class="pc-avatar-btn" id="pcAvatarBtn" type="button" data-i18n="设置头像">设置头像</button>
+        </div>
+        <input type="file" id="pcAvatarInput" accept="image/*" hidden>
+      </div>
+
+      <!-- 该人设卡的朋友圈（微信式预览行：没发过就不显示缩略） -->
+      <div class="pc-block" id="pcMomBlock">
+        <div class="pc-row pc-friend-row" id="pcFriendRow">
+          <span class="pc-row-k" data-i18n="朋友圈">朋友圈</span>
+          <div class="pc-friend-preview" id="pcFriendPreview"></div>
+          <span class="pc-arrow">›</span>
+        </div>
+      </div>
+
+      <!-- 统计 -->
+      <div class="pc-block">
+        <div class="pc-row">
+          <span class="pc-row-k" data-i18n="字数">字数</span>
+          <span class="pc-row-v" id="pcLen">0 字</span>
+        </div>
+        <div class="pc-row">
+          <span class="pc-row-k" data-i18n="聊天记录">聊天记录</span>
+          <span class="pc-row-v" id="pcMsgs">还没有聊过</span>
+        </div>
+      </div>
+
+      <!-- 动态（朋友圈）相关设置已挪到右上角「⋯」下拉菜单 #pcMoreMenu -->
+      <!-- 操作 -->
+      <div class="pc-actions">
+        <button class="pc-send" id="pcSend">发消息</button>
+        <button class="pc-del" id="pcDel" data-i18n="删除联系人">删除联系人</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 人设卡详情页：右上角「⋯」下拉菜单（样式同聊天页 #chatMenu） -->
+  <div class="chat-menu pc-menu" id="pcMoreMenu">
+    <!-- 第 1 行：开关型条目（右侧拨杆 UI），其下紧跟子项 -->
+    <div class="pc-switch-row" data-pcact="momAuto" id="pcMenuMomAuto">
+      <span class="pc-switch-label" data-i18n="让 TA 自己发朋友圈">让 TA 自己发朋友圈</span>
+      <span class="pc-switch" id="pcSwMomAuto"></span>
+    </div>
+    <!-- 缩进的子项：仅当上面「让 TA 自己发朋友圈」开关打开时显示 -->
+    <button data-pcact="momGen" id="pcMenuMomGen" class="pc-sub-item" data-i18n="发一条动态">发一条动态</button>
+    <!-- 第 2 行：开关型条目（右侧拨杆 UI） -->
+    <div class="pc-switch-row" data-pcact="momCmt" id="pcMenuMomCmt">
+      <span class="pc-switch-label" data-i18n="主动评论互动">主动评论互动</span>
+      <span class="pc-switch" id="pcSwMomCmt"></span>
+    </div>
+    <!-- 开关型条目 · 显示思考（正文里的括号心理描写 → 灰斜体） -->
+    <div class="pc-switch-row" data-pcact="psyShow" id="pcMenuPsyShow">
+      <span class="pc-switch-label" data-i18n="显示思考">显示思考</span>
+      <span class="pc-switch" id="pcSwPsyShow"></span>
+    </div>
+    <!-- 第 5 行：开关型条目 · 显示推理过程（Thinking 折叠块） -->
+    <div class="pc-switch-row" data-pcact="thinkShow" id="pcMenuThinkShow">
+      <span class="pc-switch-label" data-i18n="显示推理过程">显示推理过程</span>
+      <span class="pc-switch" id="pcSwThinkShow"></span>
+    </div>
+  </div>
+  <!-- 隐藏的真实复选框：菜单项点击时同步状态用（保持原有 momAutoOn/momCmtOn 逻辑不变） -->
+  <input type="checkbox" id="pcMomAuto" style="display:none">
+  <input type="checkbox" id="pcMomCmt" style="display:none">
+  <button id="pcMomGen" type="button" style="display:none"></button>
+
+
+  <!-- 某人设卡的朋友圈子页（微信「TA 的朋友圈」样式） -->
+  <div class="settings-page" id="momPersonPage">
+    <div class="settings-head">
+      <button class="back-btn" id="momPersonBack">‹</button>
+      <span class="settings-title" id="momPersonTitle" data-i18n="朋友圈">朋友圈</span>
+    </div>
+    <div class="settings-body">
+      <!-- 该卡的封面条：头像 + 名字 -->
+      <div class="mp-hero">
+        <div class="mp-avatar" id="mpAvatar" data-i18n="人">人</div>
+        <div class="mp-name" id="mpName" data-i18n="未命名">未命名</div>
+      </div>
+      <!-- 该卡自己的动态列表（复用动态卡片样式） -->
+      <div class="moment-list" id="momPersonList"></div>
+    </div>
+  </div>
+
+  <!-- 编辑人设内容页（从右侧滑入） -->
+  <div class="settings-page" id="personaEditPage">
+    <div class="settings-head">
+      <button class="back-btn" id="personaEditBack">‹</button>
+      <span class="settings-title" data-i18n="编辑人设内容">编辑人设内容</span>
+    </div>
+    <div class="settings-body">
+      <div class="drawer-hint" style="margin:0 4px 12px;" data-i18n="填好的内容会拼成这张卡的人设，对话时自动发给 AI。留空的项不会发送。">
+        填好的内容会拼成这张卡的人设，对话时自动发给 AI。留空的项不会发送。
+      </div>
+
+      <div class="drawer-block">
+        <div class="drawer-head">
+          <span class="drawer-label" data-i18n="基础">基础</span>
+        </div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="姓名">姓名</label>
+          <input class="pf-input" id="ppName" type="text" placeholder="例如：林晚星" data-i18n-ph="例如：林晚星" autocomplete="off">
+
+          <label class="pf-label" data-i18n="年龄">年龄</label>
+          <input class="pf-input" id="ppYears" type="text" placeholder="例如：22" data-i18n-ph="例如：22" autocomplete="off">
+
+          <label class="pf-label" data-i18n="性别">性别</label>
+          <input class="pf-input" id="ppSex" type="text" placeholder="男 / 女 / 其他" data-i18n-ph="男 / 女 / 其他" autocomplete="off">
+
+          <label class="pf-label" data-i18n="身份">身份</label>
+          <input class="pf-input" id="ppIdentity" type="text" placeholder="例如：女主角 / 学姐" data-i18n-ph="例如：女主角 / 学姐" autocomplete="off">
+
+          <label class="pf-label" data-i18n="职业">职业</label>
+          <input class="pf-input" id="ppCareer" type="text" placeholder="例如：大学生 / 插画师" data-i18n-ph="例如：大学生 / 插画师" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="drawer-block pf-acc">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="形象与性格">形象与性格</span><span class="drawer-arrow">⌄</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="性格">性格</label>
+          <textarea class="pf-area" id="ppCharacter" rows="3" placeholder="例如：外冷内热，嘴硬心软，认生" data-i18n-ph="例如：外冷内热，嘴硬心软，认生"></textarea>
+
+          <label class="pf-label" data-i18n="外貌">外貌</label>
+          <textarea class="pf-area" id="ppLook" rows="3" placeholder="例如：个子不高，及腰黑长直，圆框眼镜" data-i18n-ph="例如：个子不高，及腰黑长直，圆框眼镜"></textarea>
+
+          <label class="pf-label" data-i18n="衣着">衣着</label>
+          <textarea class="pf-area" id="ppCloth" rows="3" placeholder="例如：常穿宽松针织衫 + 帆布鞋，冬天围驼色围巾" data-i18n-ph="例如：常穿宽松针织衫 + 帆布鞋，冬天围驼色围巾"></textarea>
+
+          <label class="pf-label" data-i18n="说话风格">说话风格</label>
+          <textarea class="pf-area" id="ppTone" rows="3" placeholder="例如：短句，偶尔毒舌，少用感叹号" data-i18n-ph="例如：短句，偶尔毒舌，少用感叹号"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block pf-acc">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="背景">背景</span><span class="drawer-arrow">⌄</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="背景故事">背景故事</label>
+          <textarea class="pf-area" id="ppStory" rows="3" placeholder="例如：从小跟外婆长大，大学独自来到杭州" data-i18n-ph="例如：从小跟外婆长大，大学独自来到杭州"></textarea>
+
+          <label class="pf-label" data-i18n="与我的关系">与我的关系</label>
+          <textarea class="pf-area" id="ppRelation" rows="3" placeholder="例如：同校学姐，认识了三年" data-i18n-ph="例如：同校学姐，认识了三年"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block pf-acc">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="好恶与能力">好恶与能力</span><span class="drawer-arrow">⌄</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="喜好">喜好</label>
+          <textarea class="pf-area" id="ppLike" rows="3" placeholder="例如：咖啡、雨天、老电影" data-i18n-ph="例如：咖啡、雨天、老电影"></textarea>
+
+          <label class="pf-label" data-i18n="厌恶">厌恶</label>
+          <textarea class="pf-area" id="ppHate" rows="3" placeholder="例如：香菜、迟到、被催" data-i18n-ph="例如：香菜、迟到、被催"></textarea>
+
+          <label class="pf-label" data-i18n="能力特长">能力特长</label>
+          <textarea class="pf-area" id="ppSkill" rows="3" placeholder="例如：手绘、记路很准" data-i18n-ph="例如：手绘、记路很准"></textarea>
+
+          <label class="pf-label" data-i18n="弱点缺陷">弱点缺陷</label>
+          <textarea class="pf-area" id="ppWeak" rows="3" placeholder="例如：怕黑，路痴，嘴硬不肯认错" data-i18n-ph="例如：怕黑，路痴，嘴硬不肯认错"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-block pf-acc">
+        <div class="drawer-head"><span class="drawer-label" data-i18n="边界与补充">边界与补充</span><span class="drawer-arrow">⌄</span></div>
+        <div class="drawer-body">
+          <label class="pf-label" data-i18n="禁忌底线">禁忌底线</label>
+          <textarea class="pf-area" id="ppTaboo" rows="3" placeholder="例如：不聊家人；不主动提分手这类话题" data-i18n-ph="例如：不聊家人；不主动提分手这类话题"></textarea>
+
+          <label class="pf-label" data-i18n="补充设定 / 备注">补充设定 / 备注</label>
+          <textarea class="pf-area" id="ppExtra2" rows="4" placeholder="任何其他设定，例如口癖、习惯动作、称呼你的方式" data-i18n-ph="任何其他设定，例如口癖、习惯动作、称呼你的方式"></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-hint" id="ppStatEdit" style="margin:12px 4px 6px;" data-i18n="已填写 0 / 17 项">已填写 0 / 17 项</div>
+      <div class="drawer-row" style="margin:0 4px 20px;">
+        <button class="mini-btn" id="savePrompt" data-i18n="保存">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 长按消息菜单 -->
+  <div class="msg-menu" id="msgMenu">
+    <button data-act="quote" data-i18n="引用">引用</button>
+    <button data-act="copy" data-i18n="复制">复制</button>
+    <button data-act="regen" data-i18n="重新生成">重新生成</button>
+    <button data-act="del" data-i18n="删除这条">删除这条</button>
+  </div>
+
+  <!-- 图片预览 -->
+  <div class="img-preview" id="imgPreview">
+    <img id="previewImg" alt="">
+    <button class="preview-close" id="previewClose">✕</button>
+  </div>
+  <!-- 导入备份用的隐藏 file input -->
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+  <!-- 导入方式选择弹窗 -->
+  <div class="dlg-mask" id="importMask">
+    <div class="dlg">
+      <div class="dlg-title">导入备份</div>
+
+      <div class="drawer-hint" style="text-align:left; margin-bottom:12px;">
+        检测到 <b id="importCount">0</b> 个对话。<br>
+        <b>合并</b>：保留现有对话，把备份里的追加进来。<br>
+        <b>覆盖</b>：清空现有对话，完全替换成备份内容。
+      </div>
+      <div class="dlg-btns">
+        <button class="dlg-btn cancel" id="importCancel">取消</button>
+        <button class="dlg-btn ok" id="importMerge">合并</button>
+        <button class="dlg-btn ok" id="importReplace">覆盖</button>
+      </div>
+    </div>
+  </div>
+  <!-- 通用确认弹窗 -->
+  <div class="dlg-mask" id="confirmMask">
+    <div class="dlg">
+      <div class="dlg-title" id="confirmTitle">确认</div>
+
+      <div class="drawer-hint" id="confirmText" style="text-align:left; margin-bottom:12px;"></div>
+      <div class="dlg-btns">
+        <button class="dlg-btn cancel" id="confirmCancel">取消</button>
+        <button class="dlg-btn ok" id="confirmOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通用输入弹窗（WebView 无 prompt，自绘） -->
+  <div class="dlg-mask" id="inputMask">
+    <div class="dlg">
+      <div class="dlg-title" id="inputTitle">输入</div>
+      <input class="dlg-input" id="inputBox" type="text" placeholder="" autocomplete="off">
+      <div class="dlg-btns">
+        <button class="dlg-btn cancel" id="inputCancel">取消</button>
+        <button class="dlg-btn ok" id="inputOk">确定</button>
+      </div>
+    </div>
+  </div>
+  <!-- 导出面板（替代 WebView 下载框，因为 WebView 不认 a.download 文件名） -->
+  <div class="dlg-mask" id="expMask">
+    <div class="dlg dlg-exp">
+      <div class="dlg-title" id="expTitle">导出文件</div>
+      <div class="exp-tip">已生成，点「复制内容」后保存成文件即可（粘贴到记事本 / 任意文本编辑器）。</div>
+      <div class="exp-name" id="expName"></div>
+      <textarea class="exp-body" id="expBody" readonly spellcheck="false"></textarea>
+      <div class="exp-stat" id="expStat"></div>
+      <div class="dlg-btns">
+        <button class="dlg-btn cancel" id="expClose">关闭</button>
+        <button class="dlg-btn ok" id="expCopyName">复制文件名</button>
+        <button class="dlg-btn ok" id="expCopy">复制内容</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重命名会话弹窗 -->
+  <div class="dlg-mask" id="renameMask">
+    <div class="dlg">
+      <div class="dlg-title">重命名对话</div>
+      <input class="dlg-input" id="renameInput" type="text" placeholder="给这个对话起个名字" autocomplete="off">
+      <div class="dlg-btns">
+        <button class="dlg-btn cancel" id="renameCancel">取消</button>
+        <button class="dlg-btn ok" id="renameOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示弹窗（替代 WebView 原生 alert） -->
+  <div class="dlg-mask" id="alertMask">
+    <div class="dlg dlg-alert">
+      <div class="alert-icon" id="alertIcon">✓</div>
+      <div class="alert-title" id="alertTitle">提示</div>
+      <div class="alert-text" id="alertText"></div>
+      <div class="alert-btns">
+        <button class="alert-ok" id="alertOk">知道了</button>
+      </div>
+    </div>
+  </div>
+  <!-- API Key 编辑弹窗（修改 名字 / Key / 厂商 / 模型） -->
+  <div class="dlg-mask" id="keyEdMask">
+    <div class="dlg dlg-ked">
+      <div class="ked-head">
+        <div class="ked-title" id="kedTitle" data-i18n="编辑 API Key">编辑 API Key</div>
+        <button class="ked-close" id="kedClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="ked-scroll">
+        <div class="ked-field">
+          <div class="ked-label" data-i18n="名称">名称</div>
+          <input class="ked-input" id="kedName" type="text" placeholder="给这条 Key 起个名字" autocomplete="off">
+        </div>
+        <div class="ked-field">
+          <div class="ked-label" data-i18n="API Key">API Key</div>
+          <div class="ked-keywrap">
+            <input class="ked-input ked-key" id="kedKey" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            <button class="ked-eye" id="kedEye" type="button" aria-label="显示/隐藏">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="ked-field">
+          <div class="ked-label" data-i18n="厂商">厂商</div>
+          <div class="ked-chips" id="kedProv"></div>
+        </div>
+        <div class="ked-field">
+          <div class="ked-label" data-i18n="模型">模型</div>
+          <div class="ked-models" id="kedModel"></div>
+        </div>
+      </div>
+      <div class="ked-btns">
+        <button class="dlg-btn cancel" id="kedCancel" data-i18n="取消">取消</button>
+        <button class="dlg-btn ok" id="kedOk" data-i18n="保存">保存</button>
+      </div>
+    </div>
+  </div>
+  <!-- ⋯ 操作菜单（贴行气泡）：必须放在 body 末尾、.drawer 之外，
+       否则会被 .drawer 的 transform 变成包含块、且被其 overflow:hidden 裁掉 -->
+  <div class="pmenu" id="personaMenu">
+    <div class="pmenu-panel">
+      <button class="pmenu-btn" id="pmenuEdit" data-i18n="编辑">编辑</button>
+      <button class="pmenu-btn" id="pmenuRename" data-i18n="重命名">重命名</button>
+      <button class="pmenu-btn danger" id="pmenuDel" data-i18n="删除">删除</button>
+    </div>
+  </div>
+<script src="core_v3.js?v=144"></script>
+<script>
+/* ---------- Service Worker 注册（GitHub Pages 自动更新） ---------- */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  /* 只允许在 http/https 下注册；file:// 里没有 SW，直接跳过 */
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      window.__swReg = reg;
+      /* 有新 SW 在等待时，通知页面（core_v3.js 里 toast 提示） */
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('sw-updated'));
+          }
+        });
+      });
+    }).catch(function () {});
+  });
+
+  /* 页面拿到新控制权时，重载一次让新代码生效。
+     ★ 防无限刷新加固：用 sessionStorage 记录「本次会话已因 SW 刷新过」，
+       跨 reload 依然有效，且加 30 秒冷却窗口，从根上杜绝任何刷新循环。 */
+  function swReloadGuardOK() {
+    try {
+      var now = Date.now();
+      var last = parseInt(sessionStorage.getItem('sw_reload_ts') || '0', 10);
+      if (now - last < 30000) return false;   // 30 秒内已刷过，不再刷
+      sessionStorage.setItem('sw_reload_ts', String(now));
+      return true;
+    } catch (e) { return true; }
+  }
+  var reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    /* 首次安装 SW 时也会触发 controllerchange，此时页面本就没被 SW 接管过，
+       不需要也不应该刷新（否则一打开就白刷一次）。只有「本来有 controller
+       后来换了新的」才刷新。 */
+    if (!navigator.serviceWorker.controller) return;
+    if (reloaded) return;
+    if (!swReloadGuardOK()) return;
+    reloaded = true;
+    location.reload();
+  });
+})();
+</script>
+</body>
+</html>
