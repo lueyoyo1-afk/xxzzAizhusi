@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>下载蛛丝 · 安卓版</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;min-height:100vh;color:#1c1c1e;position:relative;overflow-x:hidden;
+    background:#eef0f4;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 18px calc(24px + env(safe-area-inset-bottom))}
+  /* 背景两团柔光，让磨砂有东西可糊 */
+  body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(60px);z-index:0;pointer-events:none}
+  body::before{width:280px;height:280px;top:-80px;left:-60px;background:rgba(120,150,220,.35)}
+  body::after{width:320px;height:320px;bottom:-100px;right:-80px;background:rgba(200,180,230,.32)}
+
+  .card{position:relative;z-index:1;width:100%;max-width:420px;
+    background:rgba(255,255,255,.55);
+    -webkit-backdrop-filter:blur(28px) saturate(1.8);backdrop-filter:blur(28px) saturate(1.8);
+    border:1px solid rgba(255,255,255,.75);
+    border-radius:24px;padding:30px 22px 24px;
+    box-shadow:0 12px 40px rgba(50,60,90,.14);text-align:center}
+  .logo{width:84px;height:84px;margin:0 auto 14px;border-radius:22px;font-size:42px;line-height:84px;
+    background:rgba(255,255,255,.72);
+    -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 8px 22px rgba(50,60,90,.14)}
+
+  h1{margin:0 0 6px;font-size:24px;letter-spacing:.5px;color:#1c1c1e}
+  .sub{margin:0 0 20px;font-size:13px;color:#8a8a92}
+
+  .ver{display:inline-block;margin-bottom:18px;padding:4px 12px;border-radius:999px;
+    background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.85);
+    color:#4a4a52;font-size:12px;font-weight:600}
+
+  .btn{display:block;width:100%;padding:15px 0;border-radius:16px;cursor:pointer;
+    font-size:16px;font-weight:600;color:#2b2b30;text-decoration:none;
+    background:rgba(255,255,255,.72);
+    -webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 6px 18px rgba(50,60,90,.14);transition:transform .12s ease}
+  .btn:active{transform:scale(.98);background:rgba(255,255,255,.9)}
+  .btn[aria-disabled="true"]{opacity:.55;pointer-events:none}
+
+  .meta{margin:14px 0 0;font-size:12px;color:#9a9aa2;line-height:1.7}
+
+  .tips{margin-top:20px;padding-top:18px;border-top:1px solid rgba(120,130,160,.15);text-align:left;
+    font-size:12.5px;color:#6f6f78;line-height:1.85}
+  .tips b{color:#3a3a40}
+
+  .alt{margin-top:16px;font-size:12px;color:#a0a0a8}
+  .alt a{color:#4a4a52;text-decoration:underline;text-underline-offset:2px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🕸</div>
+    <h1>蛛丝</h1>
+    <p class="sub">自用 AI 聊天前端 · 安卓版</p>
+    <div class="ver" id="verBadge">版本 1.0.1</div>
+    <a class="btn" id="dl"
+       href="https://github.com/lueyoyo1-afk/xxzzAizhusi/releases/download/v1.0.1/zhusi-1.0.1.apk"
+       download>📥 下载 APK（约 8.3 MB）</a>
+    <p class="meta" id="meta">文件：zhusi-1.0.1.apk · 约 8.3 MB · Android 6.0+</p>
+    <div class="tips">
+      <b>安装说明</b><br>
+      1. 点上方按钮下载 APK。<br>
+      2. 若提示「未知来源」，在设置里允许浏览器安装应用后再试。<br>
+      3. 本 App 是网页壳，<b>必须联网</b>才能使用。<br>
+      4. 安装后若提示更新，以本页版本为准。
+    </div>
+    <p class="alt">打不开？<a id="rel" href="https://github.com/lueyoyo1-afk/xxzzAizhusi/releases">前往 Releases 手动下载</a></p>
+  </div>
+<script>
+(function(){
+  var REL_BASE = 'https://github.com/lueyoyo1-afk/xxzzAizhusi/releases/download/v';
+  var el  = document.getElementById('verBadge');
+  var dl  = document.getElementById('dl');
+  var meta= document.getElementById('meta');
+
+  function applyVersion(v){
+    if (!v) return;
+    var file = 'zhusi-' + v + '.apk';
+    if (el)   el.textContent = '\u7248\u672c ' + v;
+    if (dl)   dl.href = REL_BASE + v + '/' + file;
+    if (meta) meta.textContent = '\u6587\u4ef6\uff1a' + file + ' \u00b7 \u7ea6 8.3 MB \u00b7 Android 6.0+';
+  }
+
+  fetch('version.json?t=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ if (j && j.version) applyVersion(String(j.version)); })
+    .catch(function(){});
+})();
+</script>
+</body>
+</html>
